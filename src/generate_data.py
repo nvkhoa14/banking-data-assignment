@@ -48,13 +48,13 @@ def generate_account(cur):
             acc_type = random.choice(["savings", "checking"])
             cur.execute("""
                 INSERT INTO banking.account
-                (account_id, customer_id, type, status, balance)
-                VALUES (%s,%s,%s,'active',%s)
+                (account_id, customer_id, type, balance)
+                VALUES (%s,%s,%s,%s)
                 ON CONFLICT (account_id) DO NOTHING;""",
-                (account_id, customer_id, acc_type, round(random.uniform(0, 1e7), 2))
+                (account_id, customer_id, acc_type, round(random.uniform(0, 1e8), 2))
             )
 
-# generate random data for devic
+# generate random data for device
 def generate_device(cur):
     cur.execute("SELECT customer_id FROM banking.customer;")
     for (customer_id,) in cur.fetchall():
@@ -62,15 +62,51 @@ def generate_device(cur):
             device_id = str(uuid.uuid4())
             device_type = random.choice(["desktop", "mobile"])
             ip = fake.ipv4_public()
-            lat, lon = fake.latitude(), fake.longitude()
-            trust_score = random.randint(0, 100)
             cur.execute("""
                 INSERT INTO banking.device
-                (device_id, customer_id, device_type, ip_address, geo_lat, geo_lon, trust_score)
-                VALUES (%s,%s,%s,%s,%s,%s,%s)
+                (device_id, customer_id, device_type, ip_address)
+                VALUES (%s,%s,%s,%s)
                 ON CONFLICT (device_id) DO NOTHING;""",
-                (device_id, customer_id, device_type, ip, lat, lon, trust_score)
+                (device_id, customer_id, device_type, ip)
             )
+
+# generate random transactions
+def generate_transaction(cur, n=1000):
+    cur.execute("SELECT ac.account_id, d.device_id \
+                FROM banking.account ac\
+                JOIN banking.device d ON d.customer_id = ac.customer_id;")
+    rows = cur.fetchall()
+    # generate a random transaction 
+    for _ in range(n):
+        tx_id = str(uuid.uuid4())
+        account_id, device = random.choice(rows)
+        
+        # generate random device_id
+        device_id = None
+        
+        # random amount between 10k and 10M
+        amt = round(random.uniform(10_000, 15_000_000), 0)
+        
+        # choose transaction type
+        tx_type = random.choices(['deposit', 'withdrawal', 'transfer'],
+                                    weights=[0.2, 0.3, 0.5], k=1)[0]
+        target_id = None
+        if tx_type == 'withdrawal':     # withdrawal
+            amt = -amt                  # negative for withdrawal
+        if tx_type == 'transfer':       # transfer
+            target_id = str(random.choice([a[0] for a in rows if a != account_id]))
+            device_id = str(random.choices([device, uuid.uuid4()], weights=[0.8, 0.2], k=1)[0])
+        
+        cur.execute("""
+            INSERT INTO banking.transaction
+            (tx_id, account_id, device_id, target_id, amount, method, status)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+            ON CONFLICT (tx_id) DO NOTHING;""",
+            (tx_id, account_id, device_id, target_id, amt,
+             random.choice(['online', 'card', 'cash']),
+             'pending')
+        )
+    
 
 def main():
     conn = connect_db()
@@ -81,6 +117,7 @@ def main():
         generate_customer(cur, 1000)
         generate_account(cur)
         generate_device(cur)
+        generate_transaction(cur, 1000)
 
         # commit changes and close connection
         conn.commit()

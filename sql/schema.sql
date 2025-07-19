@@ -22,35 +22,35 @@ CREATE TABLE IF NOT EXISTS account (
   opened_at    TIMESTAMPTZ      NOT NULL DEFAULT now()
 );
 
--- 4. Transaction table
+-- 4. Device tracking table
+CREATE TABLE IF NOT EXISTS device (
+  device_id   UUID              PRIMARY KEY DEFAULT gen_random_uuid(),
+  customer_id UUID              NOT NULL REFERENCES customer(customer_id),
+  device_type VARCHAR(30)       NOT NULL,      -- 'desktop', 'mobile', etc.
+  ip_address  INET              NOT NULL,
+  active      BOOLEAN           NOT NULL DEFAULT TRUE,
+  first_seen  TIMESTAMPTZ       NOT NULL DEFAULT now()
+);
+
+-- 5. Transaction table
 CREATE TABLE IF NOT EXISTS transaction (
   tx_id        UUID             PRIMARY KEY DEFAULT gen_random_uuid(),
   account_id   UUID             NOT NULL REFERENCES account(account_id),
+  device_id    UUID,                           -- for tracking
+  target_id    UUID,                           -- for transfers, can be NULL for deposits/withdrawals
   amount       NUMERIC(18,2)    NOT NULL,
   method       VARCHAR(20)      NOT NULL,      -- 'online', 'card', etc.
   status       VARCHAR(10)      NOT NULL,      -- 'pending', 'posted', 'failed'
   timestamp    TIMESTAMPTZ      NOT NULL DEFAULT now()
 );
 
--- 5. Authentication log table
+-- 6. Authentication log table
 CREATE TABLE IF NOT EXISTS auth_log (
   auth_id      UUID             PRIMARY KEY DEFAULT gen_random_uuid(),
   tx_id        UUID             NOT NULL REFERENCES transaction(tx_id),
-  auth_type    VARCHAR(20)      NOT NULL,      -- 'otp', 'biometric'
-  success_flag BOOLEAN          NOT NULL,
+  auth_type    VARCHAR(20)      NOT NULL,      -- 'PIN', 'otp', 'biometric'
+  success_flag BOOLEAN          ,
   auth_time    TIMESTAMPTZ      NOT NULL DEFAULT now()
-);
-
--- 6. Device tracking table
-CREATE TABLE IF NOT EXISTS device (
-  device_id   UUID              PRIMARY KEY DEFAULT gen_random_uuid(),
-  customer_id UUID              NOT NULL REFERENCES customer(customer_id),
-  device_type VARCHAR(30)       NOT NULL,      -- 'desktop', 'mobile', etc.
-  ip_address  INET              NOT NULL,
-  geo_lat     DOUBLE PRECISION,
-  geo_lon     DOUBLE PRECISION,
-  trust_score SMALLINT          NOT NULL DEFAULT 0,
-  first_seen  TIMESTAMPTZ       NOT NULL DEFAULT now()
 );
 
 -- 7. Fraud risk tagging table

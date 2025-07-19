@@ -12,7 +12,7 @@ RUN apt-get update \
 # Copy your schema and data-gen script into the init folder
 COPY sql/schema.sql              /docker-entrypoint-initdb.d/
 COPY src/generate_data.py        /docker-entrypoint-initdb.d/
-COPY requirements.txt            /docker-entrypoint-initdb.d/
+COPY src/requirements.txt        /docker-entrypoint-initdb.d/
 
 # Install Python deps
 RUN pip3 install --no-cache-dir --break-system-packages \
@@ -20,5 +20,5 @@ RUN pip3 install --no-cache-dir --break-system-packages \
 
 # Add an init script that applies schema then runs generate_data.py
 # It must be .sh and executable to be picked up by the official entrypoint
-COPY 01-init.sh /docker-entrypoint-initdb.d/
+COPY sql/01-init.sh /docker-entrypoint-initdb.d/
 RUN chmod +x /docker-entrypoint-initdb.d/01-init.sh
