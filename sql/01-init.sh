@@ -1,25 +1,11 @@
 #!/usr/bin/env bash
-set -e
+set -euo pipefail
 
-# Apply schema.sql into the target DB (POSTGRES_DB defaults to 'postgres' if unset)
-echo "=> Applying schema"
-psql \
-  --username "$POSTGRES_USER" \
-  --dbname   "$POSTGRES_DB" \
-  -f /docker-entrypoint-initdb.d/schema.sql
+echo ">> Running 01-init.sh: creating extensions and initial grants"
 
-# Run data generation
-echo "=> Generating sample data"
-python3 /docker-entrypoint-initdb.d/generate_data.py
-echo "=> Initialization complete"
+# Use psql’s ON_ERROR_STOP so the script exits on any SQL error
+psql -v ON_ERROR_STOP=1 \
+     --username "$POSTGRES_USER" \
+     --dbname   "$POSTGRES_DB"
 
-# Run data quality checks
-echo "=> Running data quality checks"
-python3 /docker-entrypoint-initdb.d/data_quality_standards.py
-echo "=> Data quality checks completed"
-
-
-# Run monitoring and auditing script
-echo "=> Starting monitoring and auditing"
-python3 /docker-entrypoint-initdb.d/monitoring_audit.py
-echo "=> Monitoring and auditing started"
+echo ">> 01-init.sh completed successfully"

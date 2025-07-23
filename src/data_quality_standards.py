@@ -10,7 +10,7 @@ import sys
 import logging
 import psycopg2
 
-DB_HOST     = os.getenv("POSTGRES_HOST", "")
+DB_HOST     = os.getenv("POSTGRES_HOST", "db")
 DB_PORT     = os.getenv("POSTGRES_PORT", 5432)
 DB_NAME     = os.getenv("POSTGRES_DB", "banking")
 DB_USER     = os.getenv("POSTGRES_USER", "postgres")

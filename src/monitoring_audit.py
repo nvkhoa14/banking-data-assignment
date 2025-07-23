@@ -11,7 +11,7 @@ from datetime import datetime
 import psycopg2
 from psycopg2 import sql
 
-DB_HOST     = os.getenv("POSTGRES_HOST", "")
+DB_HOST     = os.getenv("POSTGRES_HOST", "db")
 DB_PORT     = os.getenv("POSTGRES_PORT", 5432)
 DB_NAME     = os.getenv("POSTGRES_DB", "banking")
 DB_USER     = os.getenv("POSTGRES_USER", "postgres")
@@ -83,18 +83,18 @@ def define_high_value_transaction(cur, tx_id, amount):
     
     cur.execute("""
             WITH cte AS (
-                SELECT c.customer_id cus, tx.tx_id tx_id, tx.amount amt, DATE(tx.timestamp) time
+                SELECT c.customer_id cus, tx.tx_id tx_id, tx.status status, tx.amount amt, DATE(tx.timestamp) tm
                 FROM banking.customer c
                 JOIN banking.account acc ON c.customer_id = acc.customer_id 
                 JOIN banking.transaction tx ON acc.account_id = tx.account_id 
-                WHERE DATE(tx.timestamp) = DATE(NOW()) 
+                WHERE DATE(tx.timestamp) = DATE(NOW())
             )
-            SELECT cus, sum(abs(amt))
+            SELECT cus, tm, sum(abs(amt))
             FROM cte
-            WHERE cus = (SELECT cus FROM cte WHERE tx_id = %s) 
-            GROUP BY cus, time
-            HAVING sum(abs(amt)) > 20000000;
-        """, (tx_id,))
+            WHERE cus = (SELECT cus FROM cte WHERE tx_id = %s) and status = 'success'
+            GROUP BY cus, tm
+            HAVING sum(abs(amt)) + %s > 20000000;
+        """, (tx_id, amount))
     
     if cur.rowcount > 0:
         generate_risk(cur, tx_id, 3, 'Cumulative amount exceeds 20,000,000 VND')

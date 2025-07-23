@@ -1,0 +1,59 @@
+services:
+
+  db:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: banking-postgres
+    image: banking-postgres:latest
+    container_name: banking-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: secret
+      POSTGRES_DB: banking
+    volumes:
+      - db_data:/var/lib/postgresql/data
+      - ./sql/schema.sql:/docker-entrypoint-initdb.d/schema.sql:ro
+      - ./sql/01-init.sh:/docker-entrypoint-initdb.d/01-init.sh:ro
+    ports:
+      - "5432:5432"
+
+  airflow:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: airflow-banking
+    image: airflow-banking:latest
+    container_name: airflow
+    restart: unless-stopped
+    depends_on:
+      - db
+    environment:
+      # point Airflow at the Postgres metadata DB
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://postgres:secret@db:5432/banking
+      AIRFLOW__CORE__LOAD_EXAMPLES: 'False'
+      PYTHONPATH: "/opt/airflow/src"
+      PG_HOST: db
+      PG_PORT: 5432
+      PG_USER: postgres
+      PG_PASSWORD: secret
+      PG_DATABASE: banking
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags:ro
+      - ./src:/opt/airflow/src:ro
+      # - ./airflow/logs:/opt/airflow/logs
+      - ./airflow/plugins:/opt/airflow/plugins
+    ports:
+      - "8080:8080"
+    command: >
+      bash -c "
+        airflow db init &&
+        airflow users create --username admin --firstname Admin --lastname User --role Admin --email admin@example.com --password admin &&
+        airflow db upgrade &&
+        airflow scheduler & 
+        airflow webserver --port 8080
+      "
+
+volumes:
+  db_data:

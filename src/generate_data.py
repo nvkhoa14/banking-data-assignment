@@ -5,7 +5,7 @@ import os
 import psycopg2
 
 # read database connection info from environment
-DB_HOST     = os.getenv("POSTGRES_HOST", "")
+DB_HOST     = os.getenv("POSTGRES_HOST", "db")
 DB_PORT     = os.getenv("POSTGRES_PORT", 5432)
 DB_NAME     = os.getenv("POSTGRES_DB", "banking")
 DB_USER     = os.getenv("POSTGRES_USER", "postgres")
@@ -71,7 +71,9 @@ def generate_device(cur):
             )
 
 # generate random transactions
-def generate_transaction(cur, n=1000):
+def generate_transaction(n=1000):
+    conn = connect_db()
+    cur = conn.cursor()
     cur.execute("SELECT ac.account_id, d.device_id \
                 FROM banking.account ac\
                 JOIN banking.device d ON d.customer_id = ac.customer_id;")
@@ -106,7 +108,9 @@ def generate_transaction(cur, n=1000):
              random.choice(['online', 'card', 'cash']),
              'pending')
         )
-    
+    conn.commit()
+    cur.close()
+    conn.close()
 
 def main():
     conn = connect_db()
@@ -117,12 +121,12 @@ def main():
         generate_customer(cur, 1000)
         generate_account(cur)
         generate_device(cur)
-        generate_transaction(cur, 1000)
-
+        
         # commit changes and close connection
         conn.commit()
         cur.close()
     conn.close()
+    generate_transaction()
     print("Data generation completed successfully.")
 
 
