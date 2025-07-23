@@ -3,9 +3,9 @@ services:
   db:
     build:
       context: .
-      dockerfile: Dockerfile
-      target: banking-postgres
-    image: banking-postgres:latest
+      dockerfile: sql/dockerfile
+      target: postgres-banking
+    image: postgres-banking:latest
     container_name: banking-db
     restart: unless-stopped
     environment:
@@ -22,7 +22,7 @@ services:
   airflow:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: src/dockerfile
       target: airflow-banking
     image: airflow-banking:latest
     container_name: airflow

@@ -10,11 +10,11 @@ banking-data-assignment
 │   ├── logs
 │   └── plugins
 ├── docker-compose.yml
-├── img                 
+├── img                         # images for readme.md 
 ├── requirements.txt
 ├── run.sh
 ├── sql
-│   ├── 01-init.sh
+│   ├── 01-init.sh              # Init banking schema when start docker container.
 │   └── schema.sql
 └── src
     ├── data_quality_standards.py
@@ -22,9 +22,9 @@ banking-data-assignment
     └── monitoring_audit.py
 ```
 2. ERD
-[ERD](./img/ERD.png)
+![ERD](./img/ERD.png)
 3. Database
-[DB](./img/DB.png)
+![DB](./img/DB.png)
 
 ## HOW TO RUN
 
@@ -32,13 +32,13 @@ banking-data-assignment
 > sh run.sh
 
 - Open http://localhost:8080/ and pass Username 'admin' and Password 'admin' to login screen.
-[Login](./img/LOGIN.png)
+![Login](./img/LOGIN.png)
 
 - Active `banking-dq-workflow` DAG to generate data.
 [GEN](./img/GEN%20DATA.png)
 
 - After first DAG completed, Active `generate-transaction-every-minute` DAG to generate more transaction every minute. You can check the log to see how it handle transaction.
-[LOG](./img/LOG.png)
+![LOG](./img/LOG.png)
 
 - Interact with Psql DB.
 
@@ -46,4 +46,9 @@ banking-data-assignment
 
 > psql -U postgres -d banking
 
-[Query](./img/QUERY.png)
+![Query](./img/QUERY.png)
+
+- Stop docker.
+> docker-compose down
+
+- Remove `banking-postgres` and `airflow-banking` in docker desktop.
