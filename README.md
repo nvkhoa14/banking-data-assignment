@@ -34,7 +34,7 @@ banking-data-assignment
 ![DB](./img/DB.png)
 
 ## HOW TO RUN
-
+- Docker verison >= 28.3.0
 - Run docker-compose.
 > docker-compose up -d --build
 
