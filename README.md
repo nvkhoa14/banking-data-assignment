@@ -60,7 +60,7 @@ banking-data-assignment
 ![DASHBOARD](./img/DASHBOARD.png)
 ![VIS](./img/VISUALIZATION.png)
 
-- Stop docker.
-> docker-compose down
+- Stop docker and remove all containers and images.
+> docker-compose down --rmi all --volumes --remove-orphans
 
-- Remove `banking-postgres` and `airflow-banking` in docker desktop.
+- Or remove them in docker desktop.
