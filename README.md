@@ -6,20 +6,27 @@ The project is designed and implemented a secure, compliant data platform for a 
 banking-data-assignment
 ├── README.md
 ├── airflow
-│   ├── dags
-│   ├── logs
-│   └── plugins
+│   ├── dags
+│   │   ├── banking_dq_dag.py
+│   │   └── transaction_dag.py
+│   ├── logs
+│   └── plugins
+├── dashboard
+│   ├── dashboard.py
+│   ├── dockerfile
+│   └── requirements.txt
 ├── docker-compose.yml
-├── img                         # images for readme.md 
-├── requirements.txt
-├── run.sh
+├── img                                 # images for README.md
 ├── sql
-│   ├── 01-init.sh              # Init banking schema when start docker container.
-│   └── schema.sql
+│   ├── 01-init.sh
+│   ├── dockerfile
+│   └── schema.sql
 └── src
     ├── data_quality_standards.py
+    ├── dockerfile
     ├── generate_data.py
-    └── monitoring_audit.py
+    ├── monitoring_audit.py
+    └── requirements.txt
 ```
 2. ERD
 ![ERD](./img/ERD.png)
@@ -29,7 +36,7 @@ banking-data-assignment
 ## HOW TO RUN
 
 - Run docker-compose.
-> sh run.sh
+> docker-compose up -d --build
 
 - Open http://localhost:8080/ and pass Username 'admin' and Password 'admin' to login screen.
 ![Login](./img/LOGIN.png)
@@ -47,6 +54,11 @@ banking-data-assignment
 > psql -U postgres -d banking
 
 ![Query](./img/QUERY.png)
+
+- Open http://localhost:8051/ to access Streamlit visualization.
+
+![DASHBOARD](./img/DASHBOARD.png)
+![VIS](./img/VISUALIZATION.png)
 
 - Stop docker.
 > docker-compose down

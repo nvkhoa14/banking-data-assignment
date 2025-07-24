@@ -1,0 +1,9 @@
+FROM python:3.9-slim
+
+# Install Python requirements
+COPY dashboard/requirements.txt /app/requirements.txt
+RUN pip install --no-cache-dir -r /app/requirements.txt
+
+# Copy your Streamlit app
+COPY dashboard/dashboard.py /app/dashboard.py
+EXPOSE 8501

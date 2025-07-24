@@ -54,6 +54,18 @@ services:
         airflow scheduler & 
         airflow webserver --port 8080
       "
-
+  streamlit:
+    build:
+      context: .
+      dockerfile: dashboard/dockerfile
+    volumes:
+      - ./dashboard:/app
+    ports:
+      - "8501:8501"
+    environment:
+      DATABASE_URL: postgresql+psycopg2://postgres:secret@db:5432/banking
+    command: streamlit run /app/dashboard.py --server.port 8501
+    depends_on:
+      - db
 volumes:
   db_data:

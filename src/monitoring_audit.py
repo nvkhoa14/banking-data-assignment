@@ -77,15 +77,13 @@ def define_high_value_transaction(cur, tx_id, amount):
     # This function inserts a risk tag into the database if the amount exceeds the threshold.
     
     if amount > HIGH_VALUE_THRESHOLD:
-        generate_risk(cur, tx_id, 2, 'High value transaction')
         logging.warning(f"Transaction {tx_id} tagged as high value due to amount {amount}.")
-        return random.choice(['Biometric', 'OTP'])      # Strong authentication required for high-value transactions
+        return 2, random.choice(['Biometric', 'OTP'])      # Strong authentication required for high-value transactions
     
     cur.execute("""
             WITH cte AS (
-                SELECT c.customer_id cus, tx.tx_id tx_id, tx.status status, tx.amount amt, DATE(tx.timestamp) tm
-                FROM banking.customer c
-                JOIN banking.account acc ON c.customer_id = acc.customer_id 
+                SELECT acc.customer_id cus, tx.tx_id tx_id, tx.status status, tx.amount amt, DATE(tx.timestamp) tm
+                FROM banking.account acc
                 JOIN banking.transaction tx ON acc.account_id = tx.account_id 
                 WHERE DATE(tx.timestamp) = DATE(NOW())
             )
@@ -96,12 +94,14 @@ def define_high_value_transaction(cur, tx_id, amount):
             HAVING sum(abs(amt)) + %s > 20000000;
         """, (tx_id, amount))
     
-    if cur.rowcount > 0:
-        generate_risk(cur, tx_id, 3, 'Cumulative amount exceeds 20,000,000 VND')
+    if cur.rowcount > 0:                  # Cumulative amount exceeds 20,000,000 VND
+        row = cur.fetchone()
         logging.warning(f"Transaction {tx_id} tagged as high value due to cumulative amount exceeding 20,000,000 VND.")
-        return 'Biometric'      # Strong authentication required for high-value transactions
+        if (row[2] + amount) // 10000000 > row[2] // 10000000:
+            return 3, 'Biometric'         # Biometric authentication for each exceeding 10,000,000 VND
+        return 3, 'OTP'                   # OTP auhthentication
 
-    return 'PIN'            # Default authentication for regular transactions
+    return 1, 'PIN'            # Default authentication for regular transactions
 
 # Process a transaction based on its type and perform necessary checks.
 def process_transaction(conn, cur, tx):
@@ -126,7 +126,7 @@ def process_transaction(conn, cur, tx):
 
         # Create a transaction_auth record
         auth_id = str(uuid.uuid4())
-        auth_type = define_high_value_transaction(cur, tx_id, amount)
+        severity, auth_type = define_high_value_transaction(cur, tx_id, amount)
         cur.execute("""
             INSERT INTO banking.auth_log (auth_id, tx_id, auth_type)
             VALUES (%s, %s, %s)
@@ -137,11 +137,15 @@ def process_transaction(conn, cur, tx):
         if status == 'failed':
             conn.rollback()                 # Rollback if authentication fails
             update_transaction_status(cur, tx_id, 'failed')
+            if severity == 2:
+                generate_risk(cur, tx_id, severity, 'High value transaction')
+            elif severity == 3:
+                generate_risk(cur, tx_id, severity, 'Cumulative amount exceeds 20,000,000 VND')
             cur.execute("""
-                UPDATE banking.auth_log
-                SET success_flag = FALSE
-                WHERE auth_id = %s;
-            """, (auth_id,))
+                INSERT INTO banking.auth_log (auth_id, tx_id, auth_type, success_flag)
+                VALUES (%s, %s, %s, %s)
+                ON CONFLICT (auth_id) DO NOTHING;
+            """, (auth_id, tx_id, auth_type, False))
 
             raise ValueError(f"Authentication Failed")
         else:
